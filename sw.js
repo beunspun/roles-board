@@ -1,4 +1,4 @@
-const C='rb-v2';const ASSETS=['.','index.html','board.enc','manifest.json','icon-192.png','icon-512.png','icon-180.png'];
+const C='rb-v4';const ASSETS=['.','index.html','board.enc','manifest.json','icon-192.png','icon-512.png','icon-180.png'];
 // install: bypass the browser HTTP cache so a new version never re-caches the old files
 self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>Promise.all(ASSETS.map(a=>fetch(new Request(a,{cache:'reload'})).then(r=>{if(r.ok)return c.put(a,r);})))).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
