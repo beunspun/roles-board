@@ -1,0 +1,32 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Roles Board</title>
+<link rel="manifest" href="manifest.json"><meta name="theme-color" content="#21331F">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Roles Board">
+<link rel="apple-touch-icon" href="icon-180.png"><meta name="robots" content="noindex,nofollow">
+<style>body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#FCFCFB;display:flex;align-items:center;justify-content:center;min-height:100vh}
+.box{text-align:center;padding:30px;max-width:320px}.box h1{font-size:20px;color:#21331F;margin:10px 0 4px}.box p{font-size:13px;color:#5f6e76;margin:0 0 18px}
+input{font-size:18px;padding:12px 14px;border:1.5px solid #d6dccf;border-radius:11px;width:100%;box-sizing:border-box;text-align:center;background:#fff}
+button{margin-top:12px;width:100%;font-size:15px;font-weight:700;padding:12px;border:none;border-radius:11px;background:#44603F;color:#fff;cursor:pointer}
+.err{color:#b8455f;font-size:12.5px;margin-top:10px;display:none}.spin{display:none;margin-top:14px;font-size:13px;color:#5f6e76}</style></head><body>
+<div class="box"><img src="icon-192.png" width="64" height="64" alt=""><h1>Roles Board</h1><p>Enter the passcode to open the board.</p>
+<input id="pw" type="password" placeholder="Passcode" autocomplete="off" autocapitalize="none">
+<button id="go">Open</button><div class="err" id="err">Wrong passcode, try again.</div><div class="spin" id="spin">Unlocking…</div></div>
+<script>
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').then(r=>r.update()).catch(()=>{});}
+async function unlock(pw){
+ document.getElementById('spin').style.display='block';document.getElementById('err').style.display='none';
+ try{
+  const buf=await (await fetch('board.enc',{cache:'no-cache'})).arrayBuffer();
+  const b=new Uint8Array(buf),salt=b.slice(0,16),iv=b.slice(16,28),ct=b.slice(28);
+  const km=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
+  const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:150000,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['decrypt']);
+  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,ct);
+  localStorage.setItem('rb_pw',pw);
+  const html=new TextDecoder().decode(pt);
+  document.open();document.write(html);document.close();
+ }catch(e){document.getElementById('spin').style.display='none';document.getElementById('err').style.display='block';localStorage.removeItem('rb_pw');}
+}
+document.getElementById('go').onclick=()=>unlock(document.getElementById('pw').value.trim());
+document.getElementById('pw').addEventListener('keydown',e=>{if(e.key==='Enter')unlock(e.target.value.trim());});
+const saved=localStorage.getItem('rb_pw');if(saved)unlock(saved);
+</script></body></html>
